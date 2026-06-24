@@ -1,7 +1,10 @@
 package engine;
 
 public class Main {
+    /**
+     * Clase principal, inicializa el programa.
+     */
     public static void main(String[] args) {
-        System.out.println("Hello, World!");
+        InteractiveMenu.startMenu();
     }
 }
