@@ -297,7 +297,7 @@ public class Graph {
    /**
      * Verifica si el grafo es un árbol.
      * Se evalúa la versión no dirigida del grafo:
-     * - Sin lazos
+     * - Sin ciclos (no hay caminos cerrados)
      * - Sin aristas paralelas en la misma dirección
      * - Conexo en sentido no dirigido
      * - Con exactamente n-1 aristas únicas
@@ -309,44 +309,55 @@ public class Graph {
             return false;
         }
 
+        // Un árbol debe tener exactamente n-1 aristas únicas
         if (hasParallelEdgesOrSelfLoops()) {
             return false;
         }
 
+        // Construye un mapa de vecinos para la versión no dirigida del grafo
         Map<Integer, Set<Integer>> neighbors = buildUndirectedNeighbors();
         Set<Integer> visited = new HashSet<>();
         int startVertex = vertices.iterator().next();
 
+        // Verifica si hay ciclos en la versión no dirigida del grafo
         if (hasCycleUndirected(startVertex, -1, visited, neighbors)) {
             return false;
         }
 
+        // Verifica si todos los vértices fueron visitados (conectividad), asegurando que no haya componentes desconectadas.
         if (visited.size() != vertices.size()) {
             return false;
         }
 
+        // Verifica que el número de aristas únicas sea exactamente n-1
         int uniqueEdges = countUniqueUndirectedEdges(neighbors);
         return uniqueEdges == vertices.size() - 1;
     }
 
+    // Verifica si el grafo tiene aristas paralelas o ciclos
     private boolean hasParallelEdgesOrSelfLoops() {
         Map<String, Set<String>> edgeDirections = new HashMap<>();
 
+        // Recorre cada vértice y sus aristas para detectar ciclos y aristas paralelas
         for (Map.Entry<Integer, List<GraphEdge>> entry : adjacencyList.entrySet()) {
             int source = entry.getKey();
+            // Verifica si hay un ciclo (arista que apunta a sí misma).
             for (GraphEdge e : entry.getValue()) {
                 int destination = e.destination;
                 if (source == destination) {
                     return true;
                 }
 
+                // Crea una llave única para cada par de vértices, independientemente del orden
                 String key = source < destination ? source + "-" + destination : destination + "-" + source;
                 String direction = source + "->" + destination;
 
+                // Si ya existe una arista en la misma dirección entre estos dos vértices, es un ciclo o arista paralela
                 Set<String> directions = edgeDirections.computeIfAbsent(key, k -> new HashSet<>());
                 if (directions.contains(direction)) {
                     return true;
                 }
+                // Agrega la dirección de la arista al conjunto para este par de vértices
                 directions.add(direction);
             }
         }
@@ -354,12 +365,14 @@ public class Graph {
         return false;
     }
 
+    // Construye un mapa de vecinos para la versión no dirigida del grafo
     private Map<Integer, Set<Integer>> buildUndirectedNeighbors() {
-        Map<Integer, Set<Integer>> neighbors = new HashMap<>();
+        Map<Integer, Set<Integer>> neighbors = new HashMap<>(); // Mapa que almacena cada vértice y su conjunto de vecinos
         for (int vertex : vertices) {
-            neighbors.put(vertex, new HashSet<>());
+            neighbors.put(vertex, new HashSet<>()); //Inicializa un conjunto vacío para cada vértice
         }
 
+        // Recorre cada vértice y sus aristas para llenar el mapa de vecinos
         for (Map.Entry<Integer, List<GraphEdge>> entry : adjacencyList.entrySet()) {
             int source = entry.getKey();
             for (GraphEdge e : entry.getValue()) {
@@ -370,9 +383,11 @@ public class Graph {
             }
         }
 
+        // Devuelve el mapa de vecinos construido, representando la versión no dirigida del grafo
         return neighbors;
     }
 
+    // Cuenta el número de aristas únicas en la versión no dirigida del grafo
     private int countUniqueUndirectedEdges(Map<Integer, Set<Integer>> neighbors) {
         int total = 0;
         for (Set<Integer> adj : neighbors.values()) {
@@ -381,12 +396,14 @@ public class Graph {
         return total / 2;
     }
 
+    // Verifica si hay ciclos en la versión no dirigida del grafo usando DFS (búsqueda en profundidad)
     private boolean hasCycleUndirected(int current, int parent, Set<Integer> visited, Map<Integer, Set<Integer>> neighbors) {
         visited.add(current);
 
+        // Recorre todos los vecinos del vértice actual
         for (int neighbor : neighbors.getOrDefault(current, Collections.emptySet())) {
             if (!visited.contains(neighbor)) {
-                if (hasCycleUndirected(neighbor, current, visited, neighbors)) {
+                if (hasCycleUndirected(neighbor, current, visited, neighbors)) { // Si se encuentra un ciclo en la recursión, retorna true
                     return true;
                 }
             } else if (neighbor != parent) {
@@ -401,33 +418,38 @@ public class Graph {
      * Verifica si el grafo es plano usando el grafo subyacente simple y el criterio de Kuratowski.
      * Se reducen los vértices de grado 0, 1 y 2 para detectar subdivisiones de K5 o K3,3.
      *
-     * @return true si el grafo es planar, false en caso contrario
+     * @return true si el grafo es plano, false en caso contrario
      */
+    
     public boolean isPlanar() {
-        if (vertices.isEmpty()) {
+        if (vertices.isEmpty()) { // Un grafo vacío es plano
             return true;
         }
 
+        // Construye un mapa de vecinos para la versión no dirigida del grafo
         Map<Integer, Set<Integer>> neighbors = buildUndirectedNeighbors();
 
-        // Los lazos inmediatos hacen que el grafo no sea planar
+        // Los bucles inmediatos hacen que el grafo no sea plano
         for (Map.Entry<Integer, Set<Integer>> entry : neighbors.entrySet()) {
-            if (entry.getValue().contains(entry.getKey())) {
+            if (entry.getValue().contains(entry.getKey())) { // Si un vértice tiene un bucle, el grafo no es plano
                 return false;
             }
         }
 
+        // Reduce el grafo eliminando vértices de grado 0, 1 y 2
         Map<Integer, Set<Integer>> reduced = reduceGraphForPlanarity(neighbors);
         if (reduced.size() <= 4) {
             return true;
         }
 
+        // Aplica el criterio de Kuratowski: si el grafo reducido tiene más de 3n-6 aristas, o contiene K5 o K3,3, no es plano
         int n = reduced.size();
         int m = countUniqueUndirectedEdges(reduced);
         if (m > 3 * n - 6) {
             return false;
         }
 
+        // Verifica si el grafo reducido contiene K5 o K3,3
         if (containsK5(reduced)) {
             return false;
         }
@@ -438,40 +460,45 @@ public class Graph {
         return true;
     }
 
+    // Reducción del grafo eliminando vértices de grado 0, 1 y 2 para facilitar la detección de subdivisiones de K5 o K3,3
     private Map<Integer, Set<Integer>> reduceGraphForPlanarity(Map<Integer, Set<Integer>> neighbors) {
         Map<Integer, Set<Integer>> reduced = new HashMap<>();
-        for (Map.Entry<Integer, Set<Integer>> entry : neighbors.entrySet()) {
+        for (Map.Entry<Integer, Set<Integer>> entry : neighbors.entrySet()) { // Copia el mapa de vecinos original al mapa reducido
             reduced.put(entry.getKey(), new HashSet<>(entry.getValue()));
         }
 
+        // Bucle que continúa reduciendo el grafo mientras se eliminen vértices de grado 0, 1 o 2
         boolean changed = true;
         while (changed) {
             changed = false;
-            Iterator<Map.Entry<Integer, Set<Integer>>> iterator = reduced.entrySet().iterator();
+            Iterator<Map.Entry<Integer, Set<Integer>>> iterator = reduced.entrySet().iterator(); // Iterador para recorrer el mapa reducido de vecinos
             while (iterator.hasNext()) {
-                Map.Entry<Integer, Set<Integer>> entry = iterator.next();
+                Map.Entry<Integer, Set<Integer>> entry = iterator.next(); // Obtiene la entrada actual del mapa reducido
                 int vertex = entry.getKey();
-                Set<Integer> adj = entry.getValue();
-                int degree = adj.size();
+                Set<Integer> adj = entry.getValue(); // Conjunto de vecinos del vértice actual
+                int degree = adj.size(); // Calcula el grado del vértice actual (número de vecinos)
 
+                // Si el grado es 0 o 1, elimina el vértice y actualiza los vecinos
                 if (degree <= 1) {
                     iterator.remove();
                     for (int neighbor : adj) {
                         Set<Integer> neighborAdj = reduced.get(neighbor);
                         if (neighborAdj != null) {
-                            neighborAdj.remove(vertex);
+                            neighborAdj.remove(vertex); // Elimina el vértice actual de la lista de vecinos del vecino
                         }
                     }
-                    changed = true;
+                    changed = true; // Indica que se realizó un cambio y se debe volver a iterar para verificar si hay más vértices de grado 0 o 1
                     break;
                 }
 
+                // Si el grado es 2, elimina el vértice y conecta sus vecinos entre sí
                 if (degree == 2) {
-                    Iterator<Integer> neighborIterator = adj.iterator();
+                    Iterator<Integer> neighborIterator = adj.iterator(); // Iterador para recorrer los vecinos del vértice actual
                     int firstNeighbor = neighborIterator.next();
                     int secondNeighbor = neighborIterator.next();
 
-                    iterator.remove();
+                    
+                    iterator.remove(); // Elimina el vértice actual del mapa reducido
                     reduced.get(firstNeighbor).remove(vertex);
                     reduced.get(secondNeighbor).remove(vertex);
 
@@ -486,23 +513,24 @@ public class Graph {
             }
         }
 
-        return reduced;
+        return reduced; // Devuelve el mapa reducido de vecinos, que representa el grafo simplificado para la verificación de planitud
     }
 
+    // Verifica si el grafo contiene una subdivisión de K5 (grafo completo de 5 vértices)
     private boolean containsK5(Map<Integer, Set<Integer>> neighbors) {
-        List<Integer> vertexList = new ArrayList<>(neighbors.keySet());
+        List<Integer> vertexList = new ArrayList<>(neighbors.keySet()); // Convierte el conjunto de vértices en una lista para poder indexarlos
         int n = vertexList.size();
-        for (int i = 0; i < n - 4; i++) {
+        for (int i = 0; i < n - 4; i++) { // Recorre todos los subconjuntos de 5 vértices posibles en el grafo reducido
             for (int j = i + 1; j < n - 3; j++) {
                 for (int k = j + 1; k < n - 2; k++) {
                     for (int l = k + 1; l < n - 1; l++) {
                         for (int m = l + 1; m < n; m++) {
-                            int a = vertexList.get(i);
+                            int a = vertexList.get(i); // Obtiene el primer vértice del subconjunto de 5 vértices
                             int b = vertexList.get(j);
                             int c = vertexList.get(k);
                             int d = vertexList.get(l);
                             int e = vertexList.get(m);
-                            if (isCompleteSubgraph(neighbors, a, b, c, d, e)) {
+                            if (isCompleteSubgraph(neighbors, a, b, c, d, e)) { // Verifica si los 5 vértices forman un subgrafo completo (K5)
                                 return true;
                             }
                         }
@@ -513,11 +541,12 @@ public class Graph {
         return false;
     }
 
+    // Verifica si un conjunto de 5 vértices forma un subgrafo completo (K5)
     private boolean isCompleteSubgraph(Map<Integer, Set<Integer>> neighbors, int a, int b, int c, int d, int e) {
-        int[] verticesArray = {a, b, c, d, e};
-        for (int i = 0; i < verticesArray.length; i++) {
+        int[] verticesArray = {a, b, c, d, e};// Crea un arreglo con los 5 vértices para facilitar la verificación de conexiones entre ellos
+        for (int i = 0; i < verticesArray.length; i++) { // Recorre cada vértice del subconjunto de 5 vértices
             for (int j = i + 1; j < verticesArray.length; j++) {
-                if (!neighbors.get(verticesArray[i]).contains(verticesArray[j])) {
+                if (!neighbors.get(verticesArray[i]).contains(verticesArray[j])) { // Verifica si hay una conexión entre los vértices i y j; si no hay conexión, no es un subgrafo completo
                     return false;
                 }
             }
@@ -525,22 +554,23 @@ public class Graph {
         return true;
     }
 
+    // Verifica si el grafo contiene una subdivisión de K3,3 (grafo bipartito completo de 3 vértices en cada partición)
     private boolean containsK33(Map<Integer, Set<Integer>> neighbors) {
-        List<Integer> vertexList = new ArrayList<>(neighbors.keySet());
+        List<Integer> vertexList = new ArrayList<>(neighbors.keySet()); // Convierte el conjunto de vértices en una lista para poder indexarlos
         int n = vertexList.size();
-        for (int a = 0; a < n - 5; a++) {
+        for (int a = 0; a < n - 5; a++) { // Recorre todos los subconjuntos de 6 vértices posibles en el grafo reducido
             for (int b = a + 1; b < n - 4; b++) {
                 for (int c = b + 1; c < n - 3; c++) {
                     for (int d = c + 1; d < n - 2; d++) {
                         for (int e = d + 1; e < n - 1; e++) {
                             for (int f = e + 1; f < n; f++) {
-                                int v1 = vertexList.get(a);
+                                int v1 = vertexList.get(a);// Obtiene el primer vértice del subconjunto de 6 vértices
                                 int v2 = vertexList.get(b);
                                 int v3 = vertexList.get(c);
                                 int v4 = vertexList.get(d);
                                 int v5 = vertexList.get(e);
                                 int v6 = vertexList.get(f);
-                                if (isCompleteBipartite(neighbors, v1, v2, v3, v4, v5, v6)) {
+                                if (isCompleteBipartite(neighbors, v1, v2, v3, v4, v5, v6)) {// Verifica si los 6 vértices forman un subgrafo bipartito completo (K3,3)
                                     return true;
                                 }
                             }
@@ -552,19 +582,20 @@ public class Graph {
         return false;
     }
 
-    private boolean isCompleteBipartite(Map<Integer, Set<Integer>> neighbors,
-                                       int a, int b, int c, int d, int e, int f) {
-        int[] left = {a, b, c};
+    // Verifica si un conjunto de 6 vértices forma un subgrafo bipartito completo (K3,3)
+    private boolean isCompleteBipartite(Map<Integer, Set<Integer>> neighbors,int a, int b, int c, int d, int e, int f) {
+        int[] left = {a, b, c};// Crea un arreglo con los 3 vértices de la primera partición del subgrafo bipartito
         int[] right = {d, e, f};
 
-        for (int i = 0; i < left.length; i++) {
+        for (int i = 0; i < left.length; i++) { // Recorre cada vértice de la primera partición del subgrafo bipartito
             for (int j = i + 1; j < left.length; j++) {
-                if (neighbors.get(left[i]).contains(left[j])) {
+                if (neighbors.get(left[i]).contains(left[j])) { // Verifica si hay una conexión entre los vértices i y j de la primera partición; si hay conexión, no es un subgrafo bipartito completo
                     return false;
                 }
             }
         }
 
+        // Recorre cada vértice de la segunda partición del subgrafo bipartito
         for (int i = 0; i < right.length; i++) {
             for (int j = i + 1; j < right.length; j++) {
                 if (neighbors.get(right[i]).contains(right[j])) {
@@ -573,6 +604,7 @@ public class Graph {
             }
         }
 
+        // Verifica que cada vértice de la primera partición esté conectado a todos los vértices de la segunda partición
         for (int leftVertex : left) {
             for (int rightVertex : right) {
                 if (!neighbors.get(leftVertex).contains(rightVertex)) {

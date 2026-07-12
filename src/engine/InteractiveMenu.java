@@ -93,6 +93,7 @@ public class InteractiveMenu
                         }
                         break;
 
+                        
                     case 6: // Verificar si el grafo es un árbol
                         boolean tree = graph.isTree();
                         System.out.println("¿El grafo es un árbol? " + (tree ? "SÍ" : "NO"));
