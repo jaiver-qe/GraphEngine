@@ -93,7 +93,7 @@ public class InteractiveMenu
                         }
                         break;
 
-                        
+
                     case 6: // Verificar si el grafo es un árbol
                         boolean tree = graph.isTree();
                         System.out.println("¿El grafo es un árbol? " + (tree ? "SÍ" : "NO"));
@@ -110,7 +110,7 @@ public class InteractiveMenu
                         break;
 
                     case 9: // Verificar si el grafo tiene un camino de Euler
-                        boolean eulerianPath = graph.hasEulerianPath();
+                        boolean eulerianPath = graph.hasEulerPath();
                         System.out.println("¿El grafo tiene un camino de Euler? " + (eulerianPath ? "SÍ" : "NO"));
                         break;
 

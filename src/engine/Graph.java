@@ -310,32 +310,32 @@ public class Graph {
         }
 
         // Un árbol debe tener exactamente n-1 aristas únicas
-        if (hasParallelEdgesOrSelfLoops()) {
+        if (tieneAristaParalelaCiclo()) {
             return false;
         }
 
         // Construye un mapa de vecinos para la versión no dirigida del grafo
-        Map<Integer, Set<Integer>> neighbors = buildUndirectedNeighbors();
-        Set<Integer> visited = new HashSet<>();
-        int startVertex = vertices.iterator().next();
+        Map<Integer, Set<Integer>> vecinos = vecinosNoDirigidos();
+        Set<Integer> visitado = new HashSet<>();
+        int verticeInicio = vertices.iterator().next();
 
         // Verifica si hay ciclos en la versión no dirigida del grafo
-        if (hasCycleUndirected(startVertex, -1, visited, neighbors)) {
+        if (tieneCiclo(verticeInicio, -1, visitado, vecinos)) {
             return false;
         }
 
         // Verifica si todos los vértices fueron visitados (conectividad), asegurando que no haya componentes desconectadas.
-        if (visited.size() != vertices.size()) {
+        if (visitado.size() != vertices.size()) {
             return false;
         }
 
         // Verifica que el número de aristas únicas sea exactamente n-1
-        int uniqueEdges = countUniqueUndirectedEdges(neighbors);
-        return uniqueEdges == vertices.size() - 1;
+        int unicaArista = contarAristasNoDirigidas(vecinos);
+        return unicaArista == vertices.size() - 1;
     }
 
     // Verifica si el grafo tiene aristas paralelas o ciclos
-    private boolean hasParallelEdgesOrSelfLoops() {
+    private boolean tieneAristaParalelaCiclo() {
         Map<String, Set<String>> edgeDirections = new HashMap<>();
 
         // Recorre cada vértice y sus aristas para detectar ciclos y aristas paralelas
@@ -366,7 +366,7 @@ public class Graph {
     }
 
     // Construye un mapa de vecinos para la versión no dirigida del grafo
-    private Map<Integer, Set<Integer>> buildUndirectedNeighbors() {
+    private Map<Integer, Set<Integer>> vecinosNoDirigidos() {
         Map<Integer, Set<Integer>> neighbors = new HashMap<>(); // Mapa que almacena cada vértice y su conjunto de vecinos
         for (int vertex : vertices) {
             neighbors.put(vertex, new HashSet<>()); //Inicializa un conjunto vacío para cada vértice
@@ -388,7 +388,7 @@ public class Graph {
     }
 
     // Cuenta el número de aristas únicas en la versión no dirigida del grafo
-    private int countUniqueUndirectedEdges(Map<Integer, Set<Integer>> neighbors) {
+    private int contarAristasNoDirigidas(Map<Integer, Set<Integer>> neighbors) {
         int total = 0;
         for (Set<Integer> adj : neighbors.values()) {
             total += adj.size();
@@ -397,16 +397,16 @@ public class Graph {
     }
 
     // Verifica si hay ciclos en la versión no dirigida del grafo usando DFS (búsqueda en profundidad)
-    private boolean hasCycleUndirected(int current, int parent, Set<Integer> visited, Map<Integer, Set<Integer>> neighbors) {
-        visited.add(current);
+    private boolean tieneCiclo(int actual, int pariente, Set<Integer> visitado, Map<Integer, Set<Integer>> vecinos) {
+        visitado.add(actual);
 
         // Recorre todos los vecinos del vértice actual
-        for (int neighbor : neighbors.getOrDefault(current, Collections.emptySet())) {
-            if (!visited.contains(neighbor)) {
-                if (hasCycleUndirected(neighbor, current, visited, neighbors)) { // Si se encuentra un ciclo en la recursión, retorna true
+        for (int vecino : vecinos.getOrDefault(actual, Collections.emptySet())) {
+            if (!visitado.contains(vecino)) {
+                if (tieneCiclo(vecino, actual, visitado, vecinos)) { // Si se encuentra un ciclo en la recursión, retorna true
                     return true;
                 }
-            } else if (neighbor != parent) {
+            } else if (vecino != pariente) {
                 return true;
             }
         }
@@ -427,33 +427,33 @@ public class Graph {
         }
 
         // Construye un mapa de vecinos para la versión no dirigida del grafo
-        Map<Integer, Set<Integer>> neighbors = buildUndirectedNeighbors();
+        Map<Integer, Set<Integer>> vecinos = vecinosNoDirigidos();
 
         // Los bucles inmediatos hacen que el grafo no sea plano
-        for (Map.Entry<Integer, Set<Integer>> entry : neighbors.entrySet()) {
+        for (Map.Entry<Integer, Set<Integer>> entry : vecinos.entrySet()) {
             if (entry.getValue().contains(entry.getKey())) { // Si un vértice tiene un bucle, el grafo no es plano
                 return false;
             }
         }
 
         // Reduce el grafo eliminando vértices de grado 0, 1 y 2
-        Map<Integer, Set<Integer>> reduced = reduceGraphForPlanarity(neighbors);
-        if (reduced.size() <= 4) {
+        Map<Integer, Set<Integer>> reducido = gradoReducido(vecinos);
+        if (reducido.size() <= 4) {
             return true;
         }
 
         // Aplica el criterio de Kuratowski: si el grafo reducido tiene más de 3n-6 aristas, o contiene K5 o K3,3, no es plano
-        int n = reduced.size();
-        int m = countUniqueUndirectedEdges(reduced);
+        int n = reducido.size();
+        int m = contarAristasNoDirigidas(reducido);
         if (m > 3 * n - 6) {
             return false;
         }
 
         // Verifica si el grafo reducido contiene K5 o K3,3
-        if (containsK5(reduced)) {
+        if (containsK5(reducido)) {
             return false;
         }
-        if (containsK33(reduced)) {
+        if (containsK33(reducido)) {
             return false;
         }
 
@@ -461,17 +461,17 @@ public class Graph {
     }
 
     // Reducción del grafo eliminando vértices de grado 0, 1 y 2 para facilitar la detección de subdivisiones de K5 o K3,3
-    private Map<Integer, Set<Integer>> reduceGraphForPlanarity(Map<Integer, Set<Integer>> neighbors) {
-        Map<Integer, Set<Integer>> reduced = new HashMap<>();
-        for (Map.Entry<Integer, Set<Integer>> entry : neighbors.entrySet()) { // Copia el mapa de vecinos original al mapa reducido
-            reduced.put(entry.getKey(), new HashSet<>(entry.getValue()));
+    private Map<Integer, Set<Integer>> gradoReducido(Map<Integer, Set<Integer>> vecinos) {
+        Map<Integer, Set<Integer>> reducido = new HashMap<>();
+        for (Map.Entry<Integer, Set<Integer>> entry : vecinos.entrySet()) { // Copia el mapa de vecinos original al mapa reducido
+            reducido.put(entry.getKey(), new HashSet<>(entry.getValue()));
         }
 
         // Bucle que continúa reduciendo el grafo mientras se eliminen vértices de grado 0, 1 o 2
         boolean changed = true;
         while (changed) {
             changed = false;
-            Iterator<Map.Entry<Integer, Set<Integer>>> iterator = reduced.entrySet().iterator(); // Iterador para recorrer el mapa reducido de vecinos
+            Iterator<Map.Entry<Integer, Set<Integer>>> iterator = reducido.entrySet().iterator(); // Iterador para recorrer el mapa reducido de vecinos
             while (iterator.hasNext()) {
                 Map.Entry<Integer, Set<Integer>> entry = iterator.next(); // Obtiene la entrada actual del mapa reducido
                 int vertex = entry.getKey();
@@ -482,7 +482,7 @@ public class Graph {
                 if (degree <= 1) {
                     iterator.remove();
                     for (int neighbor : adj) {
-                        Set<Integer> neighborAdj = reduced.get(neighbor);
+                        Set<Integer> neighborAdj = reducido.get(neighbor);
                         if (neighborAdj != null) {
                             neighborAdj.remove(vertex); // Elimina el vértice actual de la lista de vecinos del vecino
                         }
@@ -499,12 +499,12 @@ public class Graph {
 
                     
                     iterator.remove(); // Elimina el vértice actual del mapa reducido
-                    reduced.get(firstNeighbor).remove(vertex);
-                    reduced.get(secondNeighbor).remove(vertex);
+                    reducido.get(firstNeighbor).remove(vertex);
+                    reducido.get(secondNeighbor).remove(vertex);
 
                     if (firstNeighbor != secondNeighbor) {
-                        reduced.get(firstNeighbor).add(secondNeighbor);
-                        reduced.get(secondNeighbor).add(firstNeighbor);
+                        reducido.get(firstNeighbor).add(secondNeighbor);
+                        reducido.get(secondNeighbor).add(firstNeighbor);
                     }
 
                     changed = true;
@@ -513,7 +513,7 @@ public class Graph {
             }
         }
 
-        return reduced; // Devuelve el mapa reducido de vecinos, que representa el grafo simplificado para la verificación de planitud
+        return reducido; // Devuelve el mapa reducido de vecinos, que representa el grafo simplificado para la verificación de planitud
     }
 
     // Verifica si el grafo contiene una subdivisión de K5 (grafo completo de 5 vértices)
@@ -617,9 +617,6 @@ public class Graph {
     }
 
 
-
-
-
 /**
      * Calcula el número cromático del grafo usando su versión no dirigida.
      * Se busca el menor número de colores necesarios para colorear los vértices
@@ -627,65 +624,65 @@ public class Graph {
      *
      * @return Número cromático mínimo, o 0 si el grafo está vacío
      */
+
     public int getChromaticNumber() {
-        if (vertices.isEmpty()) {
+        if (vertices.isEmpty()) { // Un grafo vacío no requiere colores
             return 0;
         }
 
-        Map<Integer, Set<Integer>> neighbors = buildUndirectedNeighbors();
-        return findChromaticNumber(neighbors);
+        // Construye un mapa de vecinos para la versión no dirigida del grafo
+        Map<Integer, Set<Integer>> vecinos = vecinosNoDirigidos();
+        return encontrarNumeroCromatico(vecinos);
     }
 
-    private int findChromaticNumber(Map<Integer, Set<Integer>> neighbors) {
-        List<Integer> order = new ArrayList<>(neighbors.keySet());
-        order.sort((a, b) -> Integer.compare(neighbors.get(b).size(), neighbors.get(a).size()));
+    // Método auxiliar que encuentra el número cromático mínimo mediante backtracking (que es una técnica de búsqueda exhaustiva)
+    private int encontrarNumeroCromatico(Map<Integer, Set<Integer>> vecinos) {
+        List<Integer> orden = new ArrayList<>(vecinos.keySet()); // Crea una lista de vértices para determinar el orden de coloreado
+        orden.sort((a, b) -> Integer.compare(vecinos.get(b).size(), vecinos.get(a).size())); // Ordena los vértices en orden descendente según su grado (número de vecinos) para optimizar el proceso de coloreado
 
-        int n = order.size();
-        int[] colors = new int[n];
+        // Intenta colorear el grafo con un número creciente de colores, comenzando desde 1 hasta n (número de vértices)
+        int cantidad = orden.size();
+        int[] colores = new int[cantidad];
 
-        for (int maxColors = 1; maxColors <= n; maxColors++) {
-            Arrays.fill(colors, 0);
-            if (colorGraph(order, neighbors, colors, 0, maxColors)) {
-                return maxColors;
+        // Intenta colorear el grafo con un número creciente de colores, comenzando desde 1 hasta n (número de vértices)
+        for (int colorMaximo = 1; colorMaximo <= cantidad; colorMaximo++) {
+            Arrays.fill(colores, 0); // Reinicia los colores asignados a 0 (sin color) antes de cada intento
+            if (colorGrafo(orden, vecinos, colores, 0, colorMaximo)) { // Si se puede colorear con colorMaximo colores, retorna ese número como el número cromático mínimo
+                return colorMaximo;
             }
         }
 
-        return n;
+        return cantidad; // En el peor de los casos, cada vértice necesita un color diferente
     }
 
-    private boolean colorGraph(List<Integer> order,
-                               Map<Integer, Set<Integer>> neighbors,
-                               int[] colors,
-                               int index,
-                               int maxColors) {
-        if (index == order.size()) {
+    // Método recursivo que intenta colorear el grafo usando backtracking
+    private boolean colorGrafo(List<Integer> orden, Map<Integer, Set<Integer>> vecinos,int[] colores,int index,int coloresMaximos) {
+        if (index == orden.size()) { // Si se han coloreado todos los vértices, retorna true indicando que se logró un coloreado válido
             return true;
         }
 
-        int vertex = order.get(index);
-        for (int color = 1; color <= maxColors; color++) {
-            if (canAssignColor(vertex, color, order, neighbors, colors, index)) {
-                colors[index] = color;
-                if (colorGraph(order, neighbors, colors, index + 1, maxColors)) {
+        // Obtiene el vértice actual a colorear según el orden determinado
+        int vertex = orden.get(index);
+        for (int color = 1; color <= coloresMaximos; color++) {
+            if (puedoAsignarColor(vertex, color, orden, vecinos, colores, index)) { // Verifica si se puede asignar el color actual al vértice sin violar las restricciones de coloreado
+                colores[index] = color;
+                if (colorGrafo(orden, vecinos, colores, index + 1, coloresMaximos)) {
                     return true;
                 }
-                colors[index] = 0;
+                colores[index] = 0; // Si no se puede colorear el resto del grafo con este color, se deshace la asignación y se prueba con el siguiente color
             }
         }
         return false;
     }
 
-    private boolean canAssignColor(int vertex,
-                                   int color,
-                                   List<Integer> order,
-                                   Map<Integer, Set<Integer>> neighbors,
-                                   int[] colors,
-                                   int index) {
-        for (int i = 0; i < index; i++) {
-            if (colors[i] == color && neighbors.get(vertex).contains(order.get(i))) {
+    // Método auxiliar que verifica si se puede asignar un color a un vértice sin violar las restricciones de coloreado
+    private boolean puedoAsignarColor(int vertex,int color,List<Integer> orden,Map<Integer, Set<Integer>> vecinos,int[] colores,int index) {
+        for (int i = 0; i < index; i++) { // Recorre los vértices ya coloreados para verificar si alguno de ellos es vecino del vértice actual y tiene el mismo color
+            if (colores[i] == color && vecinos.get(vertex).contains(orden.get(i))) {
                 return false;
             }
         }
+        // Si no se encontró ningún vecino con el mismo color, se puede asignar el color al vértice actual
         return true;
     }
 
@@ -696,91 +693,104 @@ public class Graph {
      * Verifica si el grafo dirigido tiene un camino de Euler.
      * Se usa el criterio para grafos dirigidos:
      * - Debe ser débilmente conexo en los vértices con aristas
-     * - Todos los vértices deben tener |outDegree - inDegree| <= 1
-     * - Puede haber como máximo un vértice con outDegree - inDegree = 1
-     *   y uno con inDegree - outDegree = 1
+     * - Todos los vértices deben tener |gradoSalida - GradoEntrada| <= 1
+     * - Puede haber como máximo un vértice con gradoSalida - GradoEntrada = 1
+     *   y uno con GradoEntrada - gradoSalida = 1
      *
      * @return true si existe un camino de Euler, false en caso contrario
      */
-    public boolean hasEulerianPath() {
-        if (vertices.isEmpty() || countEdges() == 0) {
+    public boolean hasEulerPath() {
+        if (vertices.isEmpty() || countEdges() == 0) { // Un grafo vacío o sin aristas tiene un camino de Euler trivial
             return true;
         }
 
-        Map<Integer, Integer> inDegree = new HashMap<>();
-        Map<Integer, Integer> outDegree = new HashMap<>();
+        // Calcula los grados de entrada y salida para cada vértice
+        Map<Integer, Integer> gradoEntrada = new HashMap<>();
+        Map<Integer, Integer> gradoSalida = new HashMap<>();
 
+        // Inicializa los grados de entrada y salida en 0 para todos los vértices
         for (int vertex : vertices) {
-            inDegree.put(vertex, 0);
-            outDegree.put(vertex, 0);
+            gradoEntrada.put(vertex, 0);
+            gradoSalida.put(vertex, 0);
         }
 
-        for (Map.Entry<Integer, List<GraphEdge>> entry : adjacencyList.entrySet()) {
-            int source = entry.getKey();
-            outDegree.put(source, outDegree.get(source) + entry.getValue().size());
-            for (GraphEdge e : entry.getValue()) {
-                inDegree.put(e.destination, inDegree.get(e.destination) + 1);
+        // Recorre la lista de adyacencia para calcular los grados de entrada y salida
+        for (Map.Entry<Integer, List<GraphEdge>> entrada : adjacencyList.entrySet()) {
+            int origen = entrada.getKey();
+            gradoSalida.put(origen, gradoSalida.get(origen) + entrada.getValue().size());
+            for (GraphEdge e : entrada.getValue()) {
+                gradoEntrada.put(e.destination, gradoEntrada.get(e.destination) + 1);
             }
         }
 
-        int startCandidates = 0;
-        int endCandidates = 0;
+        // Verifica las condiciones para la existencia de un camino de Euler
+        int candidatoInicial = 0;
+        int candidatoFinal = 0;
         for (int vertex : vertices) {
-            int out = outDegree.get(vertex);
-            int in = inDegree.get(vertex);
-            int diff = out - in;
+            int salida = gradoSalida.get(vertex); // Grado de salida del vértice
+            int entrada = gradoEntrada.get(vertex);
+            int diferencia = salida - entrada;
 
-            if (Math.abs(diff) > 1) {
+            // Si la diferencia entre el grado de salida y el grado de entrada es mayor que 1, no puede haber un camino de Euler
+            if (Math.abs(diferencia) > 1) {
                 return false;
             }
 
-            if (diff == 1) {
-                startCandidates++;
-            } else if (diff == -1) {
-                endCandidates++;
+            // Cuenta los candidatos para el inicio y fin del camino de Euler
+            if (diferencia == 1) {
+                candidatoInicial++;
+            } else if (diferencia == -1) {
+                candidatoFinal++;
             }
         }
 
-        if (!((startCandidates == 1 && endCandidates == 1) || (startCandidates == 0 && endCandidates == 0))) {
+        // Verifica que haya como máximo un candidato para el inicio y uno para el fin del camino de Euler
+        if (!((candidatoInicial == 1 && candidatoFinal == 1) || (candidatoInicial == 0 && candidatoFinal == 0))) {
             return false;
         }
 
-        return isWeaklyConnectedForEuler(inDegree, outDegree);
+        // Verifica si el grafo es débilmente conexo considerando solo los vértices con aristas
+        return grafoEsDebilmenteConexo(gradoEntrada, gradoSalida);
     }
 
-    private boolean isWeaklyConnectedForEuler(Map<Integer, Integer> inDegree,
-                                              Map<Integer, Integer> outDegree) {
-        Map<Integer, Set<Integer>> neighbors = buildUndirectedNeighbors();
-        Set<Integer> visited = new HashSet<>();
-        Queue<Integer> queue = new LinkedList<>();
+    // Método auxiliar que verifica si el grafo es débilmente conexo considerando solo los vértices con aristas
+    private boolean grafoEsDebilmenteConexo(Map<Integer, Integer> gradoEntrada,Map<Integer, Integer> gradoSalida) {
+        Map<Integer, Set<Integer>> vecinos = vecinosNoDirigidos(); // Construye un mapa de vecinos para la versión no dirigida del grafo
+        Set<Integer> visitado = new HashSet<>(); // Conjunto para almacenar los vértices visitados durante la búsqueda en anchura (BFS)
+        Queue<Integer> cola = new LinkedList<>(); // Cola para la búsqueda en anchura (BFS)
 
-        int startVertex = -1;
+        // Encuentra un vértice de inicio que tenga al menos una arista (grado de entrada o salida mayor que 0)
+        int verticeInicio = -1;
         for (int vertex : vertices) {
-            if (inDegree.get(vertex) + outDegree.get(vertex) > 0) {
-                startVertex = vertex;
+            if (gradoEntrada.get(vertex) + gradoSalida.get(vertex) > 0) {
+                verticeInicio = vertex; // Se encontró un vértice de inicio válido, se rompe el bucle
                 break;
             }
         }
 
-        if (startVertex == -1) {
+        // Si no se encontró ningún vértice con aristas, el grafo es débilmente conexo por definición
+        if (verticeInicio == -1) {
             return true;
         }
 
-        queue.add(startVertex);
-        visited.add(startVertex);
+        // Realiza una búsqueda en anchura (BFS) para recorrer todos los vértices alcanzables desde el vértice de inicio
+        cola.add(verticeInicio);
+        visitado.add(verticeInicio);
 
-        while (!queue.isEmpty()) {
-            int current = queue.poll();
-            for (int neighbor : neighbors.getOrDefault(current, Collections.emptySet())) {
-                if (!visited.contains(neighbor)) {
-                    visited.add(neighbor);
-                    queue.add(neighbor);
+        // Mientras haya vértices en la cola, se procesan sus vecinos y se agregan a la cola si no han sido visitados
+        while (!cola.isEmpty()) {
+            int verticeActual = cola.poll();
+            for (int vecino : vecinos.getOrDefault(verticeActual, Collections.emptySet())) {
+                if (!visitado.contains(vecino)) { // Si el vecino no ha sido visitado, se marca como visitado y se agrega a la cola para su procesamiento
+                    visitado.add(vecino);
+                    cola.add(vecino);
                 }
             }
         }
 
+        // Verifica si todos los vértices con aristas han sido visitados
         for (int vertex : vertices) {
-            if (inDegree.get(vertex) + outDegree.get(vertex) > 0 && !visited.contains(vertex)) {
+            if (gradoEntrada.get(vertex) + gradoSalida.get(vertex) > 0 && !visitado.contains(vertex)) { // Si hay un vértice con aristas que no fue visitado, el grafo no es débilmente conexo
                 return false;
             }
         }
