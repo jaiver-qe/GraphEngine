@@ -41,8 +41,12 @@ public class InteractiveMenu
                 System.out.println("3. Verificar si es grafo completo");
                 System.out.println("4. Verificar si el grafo es conexo");
                 System.out.println("5. Mostrar componentes conexos");
-                System.out.println("6. Volver a mostrar el grafo");
-                System.out.println("7. Salir");
+                System.out.println("6. Verificar si el grafo es un arbol");
+                System.out.println("7. Verificar si el grafo es plano");
+                System.out.println("8. Verficar el numero cromatico del grafo");
+                System.out.println("9. Verificar si el grafo tiene un camino de euler");
+                System.out.println("10. Volver a mostrar el grafo");
+                System.out.println("11. Salir");
                 System.out.print("Elige una opción: ");
 
                 int option = scanner.nextInt(); // Lee la opción del usuario
@@ -89,22 +93,42 @@ public class InteractiveMenu
                         }
                         break;
 
-                    case 6: // Mostrar grafo nuevamente
+                    case 6: // Verificar si el grafo es un árbol
+                        boolean tree = graph.isTree();
+                        System.out.println("¿El grafo es un árbol? " + (tree ? "SÍ" : "NO"));
+                        break;
+
+                    case 7: // Verificar si el grafo es plano
+                        boolean planar = graph.isPlanar();
+                        System.out.println("¿El grafo es plano? " + (planar ? "SÍ" : "NO"));
+                        break;
+
+                    case 8: // Verificar el número cromático del grafo
+                        int chromaticNumber = graph.getChromaticNumber();
+                        System.out.println("Número cromático del grafo: " + chromaticNumber);
+                        break;
+
+                    case 9: // Verificar si el grafo tiene un camino de Euler
+                        boolean eulerianPath = graph.hasEulerianPath();
+                        System.out.println("¿El grafo tiene un camino de Euler? " + (eulerianPath ? "SÍ" : "NO"));
+                        break;
+
+                    case 10: // Mostrar grafo nuevamente
                         graph.displayGraph();
                         break;
 
-                    case 7: // Salir del programa
+                    case 11: // Salir del programa
                         running = false;
-                        System.out.println("¡Hasta luego!");
+                        System.out.println(">> ¡Hasta luego!");
                         break;
 
                     default:
-                        System.out.println("Opción no válida");
+                        System.out.println(">> Opción no válida");
                 }
             }
 
         } catch (IOException e) { //Se ejecuta si el archivo no existe.
-            System.err.println("Error al leer el archivo: " + e.getMessage());
+            System.err.println(">> Error al leer el archivo: " + e.getMessage());
         }
 
         scanner.close(); // Cierra el scanner para liberar recursos.
@@ -120,16 +144,24 @@ public class InteractiveMenu
         } catch (Exception ignored) {
         } // Si falla, se usará el estilo básico de Java.
 
-        System.out.print("Ingresa la ruta del archivo o presiona Enter para abrir la ventana de selección: ");
-        String path = scanner.nextLine();
+        System.out.print("\n>> Ingresa la ruta del archivo o presiona Enter para abrir la ventana de selección. " +"\n>> Escribe 'q' si quieres salir del programa.\n>> ");
+        String answerUser = scanner.nextLine();
+        if(answerUser.equalsIgnoreCase("q")){
+                System.out.println(">> ¡Hasta luego!");
+                System.exit(0);
+            }
+
+        //String path = scanner.nextLine();
 
         // Bucle para manejar la selección del archivo, permitiendo reintentos si el usuario ingresa una ruta inválida o cancela la exploración.
         while (true) {
 
+            
+
             // Este caso es por si el usuario presiono enter sin dar ninguna ruta.
-            if (path.isEmpty()) {
+            if (answerUser.isEmpty()) {
                 JFileChooser fileChooser = new JFileChooser();
-                fileChooser.setFileFilter(new FileNameExtensionFilter("Archivo de texto", "txt"));
+                fileChooser.setFileFilter(new FileNameExtensionFilter(">> Archivo de texto", "txt"));
 
                 //El usario selecciona un archivo y se retorna su ruta.
                 if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
@@ -138,26 +170,34 @@ public class InteractiveMenu
                 }
                 else {
                     // Si el usuario cancela la selección, se le indicará que intente de nuevo.
-                    System.out.println("\n[!] Has cancelado la seleccion.");
+                    System.out.println("\n>> Has cancelado la seleccion.");
+                
                 }
             }
 
             // Este caso es por si el usuario escribió algo o canceló la seleccion y debe reintentar.
             else {
-                java.io.File file = new java.io.File(path);
+                
+                java.io.File file = new java.io.File(answerUser);
 
                 // Si el archivo existe y es un archivo (no un directorio), se retorna la ruta.
                 if (file.exists() && file.isFile()) {
-                    return path;
+                    return answerUser;
                 }
 
-                System.out.println("Error: El archivo no existe o la ruta no es valida.");
+                System.out.println("\n>> Error: El archivo no existe o la ruta no es valida.");
             }
 
             //Si el la ejecucion llega hasta este punto es porque no se pudo leer un archivo de manera exitosa asi que le pedimos al usuario reintentar.
-            System.out.print("Intenta de nuevo! \n");
-            System.out.print("Ingresa la ruta del archivo o presiona Enter para abrir la ventana de selección:");
-            path = scanner.nextLine();
+            System.out.print(">> Intenta de nuevo! \n");
+            System.out.print("\n>> Ingresa la ruta del archivo o presiona Enter para abrir la ventana de selección. " +"\n>> Escribe 'q' si quieres salir del programa.\n>> ");
+            
+
+            answerUser = scanner.nextLine();
+            if(answerUser.equalsIgnoreCase("q")){
+                System.out.println(">> ¡Hasta luego!");
+                System.exit(0);
+            }
         }
     }
 }

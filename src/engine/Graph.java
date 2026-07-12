@@ -1,8 +1,6 @@
 package engine;
 
 import java.util.*;
-import java.util.LinkedList;
-import java.util.Queue;
 
 public class Graph {
     private Map<Integer, List<GraphEdge>> adjacencyList;
@@ -294,4 +292,468 @@ public class Graph {
         }
         return graph;
     }
+
+
+   /**
+     * Verifica si el grafo es un árbol.
+     * Se evalúa la versión no dirigida del grafo:
+     * - Sin lazos
+     * - Sin aristas paralelas en la misma dirección
+     * - Conexo en sentido no dirigido
+     * - Con exactamente n-1 aristas únicas
+     *
+     * @return true si el grafo es un árbol, false si no
+     */
+    public boolean isTree() {
+        if (vertices.isEmpty()) {
+            return false;
+        }
+
+        if (hasParallelEdgesOrSelfLoops()) {
+            return false;
+        }
+
+        Map<Integer, Set<Integer>> neighbors = buildUndirectedNeighbors();
+        Set<Integer> visited = new HashSet<>();
+        int startVertex = vertices.iterator().next();
+
+        if (hasCycleUndirected(startVertex, -1, visited, neighbors)) {
+            return false;
+        }
+
+        if (visited.size() != vertices.size()) {
+            return false;
+        }
+
+        int uniqueEdges = countUniqueUndirectedEdges(neighbors);
+        return uniqueEdges == vertices.size() - 1;
+    }
+
+    private boolean hasParallelEdgesOrSelfLoops() {
+        Map<String, Set<String>> edgeDirections = new HashMap<>();
+
+        for (Map.Entry<Integer, List<GraphEdge>> entry : adjacencyList.entrySet()) {
+            int source = entry.getKey();
+            for (GraphEdge e : entry.getValue()) {
+                int destination = e.destination;
+                if (source == destination) {
+                    return true;
+                }
+
+                String key = source < destination ? source + "-" + destination : destination + "-" + source;
+                String direction = source + "->" + destination;
+
+                Set<String> directions = edgeDirections.computeIfAbsent(key, k -> new HashSet<>());
+                if (directions.contains(direction)) {
+                    return true;
+                }
+                directions.add(direction);
+            }
+        }
+
+        return false;
+    }
+
+    private Map<Integer, Set<Integer>> buildUndirectedNeighbors() {
+        Map<Integer, Set<Integer>> neighbors = new HashMap<>();
+        for (int vertex : vertices) {
+            neighbors.put(vertex, new HashSet<>());
+        }
+
+        for (Map.Entry<Integer, List<GraphEdge>> entry : adjacencyList.entrySet()) {
+            int source = entry.getKey();
+            for (GraphEdge e : entry.getValue()) {
+                neighbors.putIfAbsent(source, new HashSet<>());
+                neighbors.putIfAbsent(e.destination, new HashSet<>());
+                neighbors.get(source).add(e.destination);
+                neighbors.get(e.destination).add(source);
+            }
+        }
+
+        return neighbors;
+    }
+
+    private int countUniqueUndirectedEdges(Map<Integer, Set<Integer>> neighbors) {
+        int total = 0;
+        for (Set<Integer> adj : neighbors.values()) {
+            total += adj.size();
+        }
+        return total / 2;
+    }
+
+    private boolean hasCycleUndirected(int current, int parent, Set<Integer> visited, Map<Integer, Set<Integer>> neighbors) {
+        visited.add(current);
+
+        for (int neighbor : neighbors.getOrDefault(current, Collections.emptySet())) {
+            if (!visited.contains(neighbor)) {
+                if (hasCycleUndirected(neighbor, current, visited, neighbors)) {
+                    return true;
+                }
+            } else if (neighbor != parent) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Verifica si el grafo es plano usando el grafo subyacente simple y el criterio de Kuratowski.
+     * Se reducen los vértices de grado 0, 1 y 2 para detectar subdivisiones de K5 o K3,3.
+     *
+     * @return true si el grafo es planar, false en caso contrario
+     */
+    public boolean isPlanar() {
+        if (vertices.isEmpty()) {
+            return true;
+        }
+
+        Map<Integer, Set<Integer>> neighbors = buildUndirectedNeighbors();
+
+        // Los lazos inmediatos hacen que el grafo no sea planar
+        for (Map.Entry<Integer, Set<Integer>> entry : neighbors.entrySet()) {
+            if (entry.getValue().contains(entry.getKey())) {
+                return false;
+            }
+        }
+
+        Map<Integer, Set<Integer>> reduced = reduceGraphForPlanarity(neighbors);
+        if (reduced.size() <= 4) {
+            return true;
+        }
+
+        int n = reduced.size();
+        int m = countUniqueUndirectedEdges(reduced);
+        if (m > 3 * n - 6) {
+            return false;
+        }
+
+        if (containsK5(reduced)) {
+            return false;
+        }
+        if (containsK33(reduced)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private Map<Integer, Set<Integer>> reduceGraphForPlanarity(Map<Integer, Set<Integer>> neighbors) {
+        Map<Integer, Set<Integer>> reduced = new HashMap<>();
+        for (Map.Entry<Integer, Set<Integer>> entry : neighbors.entrySet()) {
+            reduced.put(entry.getKey(), new HashSet<>(entry.getValue()));
+        }
+
+        boolean changed = true;
+        while (changed) {
+            changed = false;
+            Iterator<Map.Entry<Integer, Set<Integer>>> iterator = reduced.entrySet().iterator();
+            while (iterator.hasNext()) {
+                Map.Entry<Integer, Set<Integer>> entry = iterator.next();
+                int vertex = entry.getKey();
+                Set<Integer> adj = entry.getValue();
+                int degree = adj.size();
+
+                if (degree <= 1) {
+                    iterator.remove();
+                    for (int neighbor : adj) {
+                        Set<Integer> neighborAdj = reduced.get(neighbor);
+                        if (neighborAdj != null) {
+                            neighborAdj.remove(vertex);
+                        }
+                    }
+                    changed = true;
+                    break;
+                }
+
+                if (degree == 2) {
+                    Iterator<Integer> neighborIterator = adj.iterator();
+                    int firstNeighbor = neighborIterator.next();
+                    int secondNeighbor = neighborIterator.next();
+
+                    iterator.remove();
+                    reduced.get(firstNeighbor).remove(vertex);
+                    reduced.get(secondNeighbor).remove(vertex);
+
+                    if (firstNeighbor != secondNeighbor) {
+                        reduced.get(firstNeighbor).add(secondNeighbor);
+                        reduced.get(secondNeighbor).add(firstNeighbor);
+                    }
+
+                    changed = true;
+                    break;
+                }
+            }
+        }
+
+        return reduced;
+    }
+
+    private boolean containsK5(Map<Integer, Set<Integer>> neighbors) {
+        List<Integer> vertexList = new ArrayList<>(neighbors.keySet());
+        int n = vertexList.size();
+        for (int i = 0; i < n - 4; i++) {
+            for (int j = i + 1; j < n - 3; j++) {
+                for (int k = j + 1; k < n - 2; k++) {
+                    for (int l = k + 1; l < n - 1; l++) {
+                        for (int m = l + 1; m < n; m++) {
+                            int a = vertexList.get(i);
+                            int b = vertexList.get(j);
+                            int c = vertexList.get(k);
+                            int d = vertexList.get(l);
+                            int e = vertexList.get(m);
+                            if (isCompleteSubgraph(neighbors, a, b, c, d, e)) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean isCompleteSubgraph(Map<Integer, Set<Integer>> neighbors, int a, int b, int c, int d, int e) {
+        int[] verticesArray = {a, b, c, d, e};
+        for (int i = 0; i < verticesArray.length; i++) {
+            for (int j = i + 1; j < verticesArray.length; j++) {
+                if (!neighbors.get(verticesArray[i]).contains(verticesArray[j])) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private boolean containsK33(Map<Integer, Set<Integer>> neighbors) {
+        List<Integer> vertexList = new ArrayList<>(neighbors.keySet());
+        int n = vertexList.size();
+        for (int a = 0; a < n - 5; a++) {
+            for (int b = a + 1; b < n - 4; b++) {
+                for (int c = b + 1; c < n - 3; c++) {
+                    for (int d = c + 1; d < n - 2; d++) {
+                        for (int e = d + 1; e < n - 1; e++) {
+                            for (int f = e + 1; f < n; f++) {
+                                int v1 = vertexList.get(a);
+                                int v2 = vertexList.get(b);
+                                int v3 = vertexList.get(c);
+                                int v4 = vertexList.get(d);
+                                int v5 = vertexList.get(e);
+                                int v6 = vertexList.get(f);
+                                if (isCompleteBipartite(neighbors, v1, v2, v3, v4, v5, v6)) {
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean isCompleteBipartite(Map<Integer, Set<Integer>> neighbors,
+                                       int a, int b, int c, int d, int e, int f) {
+        int[] left = {a, b, c};
+        int[] right = {d, e, f};
+
+        for (int i = 0; i < left.length; i++) {
+            for (int j = i + 1; j < left.length; j++) {
+                if (neighbors.get(left[i]).contains(left[j])) {
+                    return false;
+                }
+            }
+        }
+
+        for (int i = 0; i < right.length; i++) {
+            for (int j = i + 1; j < right.length; j++) {
+                if (neighbors.get(right[i]).contains(right[j])) {
+                    return false;
+                }
+            }
+        }
+
+        for (int leftVertex : left) {
+            for (int rightVertex : right) {
+                if (!neighbors.get(leftVertex).contains(rightVertex)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+
+
+
+
+/**
+     * Calcula el número cromático del grafo usando su versión no dirigida.
+     * Se busca el menor número de colores necesarios para colorear los vértices
+     * de modo que no haya dos vértices adyacentes con el mismo color.
+     *
+     * @return Número cromático mínimo, o 0 si el grafo está vacío
+     */
+    public int getChromaticNumber() {
+        if (vertices.isEmpty()) {
+            return 0;
+        }
+
+        Map<Integer, Set<Integer>> neighbors = buildUndirectedNeighbors();
+        return findChromaticNumber(neighbors);
+    }
+
+    private int findChromaticNumber(Map<Integer, Set<Integer>> neighbors) {
+        List<Integer> order = new ArrayList<>(neighbors.keySet());
+        order.sort((a, b) -> Integer.compare(neighbors.get(b).size(), neighbors.get(a).size()));
+
+        int n = order.size();
+        int[] colors = new int[n];
+
+        for (int maxColors = 1; maxColors <= n; maxColors++) {
+            Arrays.fill(colors, 0);
+            if (colorGraph(order, neighbors, colors, 0, maxColors)) {
+                return maxColors;
+            }
+        }
+
+        return n;
+    }
+
+    private boolean colorGraph(List<Integer> order,
+                               Map<Integer, Set<Integer>> neighbors,
+                               int[] colors,
+                               int index,
+                               int maxColors) {
+        if (index == order.size()) {
+            return true;
+        }
+
+        int vertex = order.get(index);
+        for (int color = 1; color <= maxColors; color++) {
+            if (canAssignColor(vertex, color, order, neighbors, colors, index)) {
+                colors[index] = color;
+                if (colorGraph(order, neighbors, colors, index + 1, maxColors)) {
+                    return true;
+                }
+                colors[index] = 0;
+            }
+        }
+        return false;
+    }
+
+    private boolean canAssignColor(int vertex,
+                                   int color,
+                                   List<Integer> order,
+                                   Map<Integer, Set<Integer>> neighbors,
+                                   int[] colors,
+                                   int index) {
+        for (int i = 0; i < index; i++) {
+            if (colors[i] == color && neighbors.get(vertex).contains(order.get(i))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+
+    
+
+ /**
+     * Verifica si el grafo dirigido tiene un camino de Euler.
+     * Se usa el criterio para grafos dirigidos:
+     * - Debe ser débilmente conexo en los vértices con aristas
+     * - Todos los vértices deben tener |outDegree - inDegree| <= 1
+     * - Puede haber como máximo un vértice con outDegree - inDegree = 1
+     *   y uno con inDegree - outDegree = 1
+     *
+     * @return true si existe un camino de Euler, false en caso contrario
+     */
+    public boolean hasEulerianPath() {
+        if (vertices.isEmpty() || countEdges() == 0) {
+            return true;
+        }
+
+        Map<Integer, Integer> inDegree = new HashMap<>();
+        Map<Integer, Integer> outDegree = new HashMap<>();
+
+        for (int vertex : vertices) {
+            inDegree.put(vertex, 0);
+            outDegree.put(vertex, 0);
+        }
+
+        for (Map.Entry<Integer, List<GraphEdge>> entry : adjacencyList.entrySet()) {
+            int source = entry.getKey();
+            outDegree.put(source, outDegree.get(source) + entry.getValue().size());
+            for (GraphEdge e : entry.getValue()) {
+                inDegree.put(e.destination, inDegree.get(e.destination) + 1);
+            }
+        }
+
+        int startCandidates = 0;
+        int endCandidates = 0;
+        for (int vertex : vertices) {
+            int out = outDegree.get(vertex);
+            int in = inDegree.get(vertex);
+            int diff = out - in;
+
+            if (Math.abs(diff) > 1) {
+                return false;
+            }
+
+            if (diff == 1) {
+                startCandidates++;
+            } else if (diff == -1) {
+                endCandidates++;
+            }
+        }
+
+        if (!((startCandidates == 1 && endCandidates == 1) || (startCandidates == 0 && endCandidates == 0))) {
+            return false;
+        }
+
+        return isWeaklyConnectedForEuler(inDegree, outDegree);
+    }
+
+    private boolean isWeaklyConnectedForEuler(Map<Integer, Integer> inDegree,
+                                              Map<Integer, Integer> outDegree) {
+        Map<Integer, Set<Integer>> neighbors = buildUndirectedNeighbors();
+        Set<Integer> visited = new HashSet<>();
+        Queue<Integer> queue = new LinkedList<>();
+
+        int startVertex = -1;
+        for (int vertex : vertices) {
+            if (inDegree.get(vertex) + outDegree.get(vertex) > 0) {
+                startVertex = vertex;
+                break;
+            }
+        }
+
+        if (startVertex == -1) {
+            return true;
+        }
+
+        queue.add(startVertex);
+        visited.add(startVertex);
+
+        while (!queue.isEmpty()) {
+            int current = queue.poll();
+            for (int neighbor : neighbors.getOrDefault(current, Collections.emptySet())) {
+                if (!visited.contains(neighbor)) {
+                    visited.add(neighbor);
+                    queue.add(neighbor);
+                }
+            }
+        }
+
+        for (int vertex : vertices) {
+            if (inDegree.get(vertex) + outDegree.get(vertex) > 0 && !visited.contains(vertex)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
 }
+
