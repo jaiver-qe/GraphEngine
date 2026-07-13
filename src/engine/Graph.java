@@ -162,6 +162,15 @@ public class Graph {
         int expectedEdges = n * (n - 1) / 2;
         int actualEdges = countEdges();
 
+        /** 
+         * Si la representación guarda cada arista en ambos sentidos (lista de adyacencia
+         * mantiene aristas mutuas para grafo no dirigido), countEdges() puede devolver
+         * el doble del número esperado. Ajustamos ese caso dividiendo entre 2.
+         */
+        if (actualEdges == expectedEdges * 2) {
+            actualEdges /= 2;
+        }
+
         if (actualEdges != expectedEdges) {
             return false;
         }
@@ -178,6 +187,8 @@ public class Graph {
                 }
             }
         }
+
+        
 
         return true;
     }
