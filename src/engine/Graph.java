@@ -107,7 +107,7 @@ public class Graph {
      */
     public int calculateDegree(int vertex) {
         if (!vertices.contains(vertex)) { // Verifica que el vértice exista
-            throw new IllegalArgumentException("> El vértice " + vertex + " no existe en el grafo");
+            throw new IllegalArgumentException("El vértice " + vertex + " no existe en el grafo");
         }
 
         int outDegree = adjacencyList.getOrDefault(vertex, new ArrayList<>()).size();
@@ -125,27 +125,40 @@ public class Graph {
     }
 
     /**
-     * Determina si el grafo es simple o multigrafo
-     * Grafo simple: no hay aristas paralelas (mismo origen y destino con mismo peso)
+     * Determina si el grafo es simple, multigrafo o tiene bucles
+     * Grafo simple: no hay aristas paralelas ni bucles (self-loops)
+     * Multigrafo: tiene aristas paralelas (mismo origen y destino con mismo peso)
+     * Grafo con bucles: tiene al menos un bucle (arista que va de un vértice a sí mismo)
      *
-     * @return String indicando "Grafo simple" o "Multigrafo"
+     * @return String indicando el tipo de grafo
      */
-    public String getGraphType() {
+    public String getGraphType() { 
+        boolean tieneBucles = false;
+        
         for (Map.Entry<Integer, List<GraphEdge>> entry : adjacencyList.entrySet()) {
             int source = entry.getKey();
             List<GraphEdge> edges = entry.getValue();
 
             Set<String> uniqueEdges = new HashSet<>();
             for (GraphEdge e : edges) {
+                // Detecta bucles (self-loops)
+                if (e.destination == source) {
+                    tieneBucles = true;
+                }
+                
                 String key = source + "->" + e.destination + "(" + e.weight + ")";
                 if (uniqueEdges.contains(key)) {
-                    return "> Multigrafo (se detectaron aristas paralelas o múltiples)";
+                    return "Multigrafo (se detectaron aristas paralelas o múltiples)";
                 }
                 uniqueEdges.add(key);
             }
         }
 
-        return "> Grafo simple (sin aristas paralelas)";
+        if (tieneBucles) {
+            return "Grafo con bucles (no es simple)";
+        }
+
+        return "Grafo simple (sin aristas paralelas ni bucles)";
     }
 
     /**
