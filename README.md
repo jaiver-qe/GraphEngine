@@ -9,12 +9,13 @@ Este proyecto es un motor de procesamiento de grafos desarrollado para la asigna
 El programa te pedirá que escribas la ruta del archivo manualmente o que selecciones el
 archivo. Ejemplo:
 **Opciones válidas:**
+- Si presiona la tecla "Enter" en su defecto presionando la tecla enter se abre el selector de archivos 
+  permitiendo al usuario navegar por el directorio como comunmente se hace en otras plicaciones para seleccionar el archivo deseado.
+
 - `datos/grafo.txt` (si el archivo está en la carpeta `datos`)
 - `C:/ruta/completa/grafo.txt` (ruta absoluta en Windows)
 - `/home/usuario/grafo.txt` (ruta absoluta en Linux/Mac)
 - `grafo.txt` (si el archivo está en la misma carpeta que el programa)
-
-Si presiona la tecla "Enter" en su defecto presionando la tecla enter se abre el selector de archivos permitiendo al usuario navegar por el directorio como comunmente se hace en otras plicaciones para seleccionar el archivo deseado.
 
 ### Formato del Archivo de Entrada
 
@@ -38,17 +39,21 @@ origen,destino,peso
 
 
 #### Funcionalidades Implementadas
-
-| # | Funcionalidad | Descripción |
-|---|---------------|-------------|
-| 1 | Lectura de archivos | Lee grafos desde archivos CSV con formato `origen,destino,peso` |
-| 2 | Representación del grafo | Muestra el grafo como lista de adyacencia en consola |
-| 3 | Grado de un vértice | Calcula el grado total (aristas entrantes + salientes) de un vértice |
-| 4 | Tipo de grafo | Determina si es un grafo simple o un multigrafo |
-| 5 | Grafo completo | Verifica si el grafo es completo (todos los pares de vértices conectados) |
-| 6 | Grafo conexo | Verifica si el grafo es conexo usando BFS (búsqueda en anchura) |
-| 7 | Componentes conexos | Identifica y muestra todos los componentes conexos del grafo |
-
+|---|------------------------------------|----------------------------------------------------------------------------------------------|
+| # | Funcionalidad                      | Descripción                                                                                  |
+|---|------------------------------------|----------------------------------------------------------------------------------------------|
+| 1 | Lectura de archivos                | Lee grafos desde archivos CSV con formato `origen,destino,peso`                              |
+| 2 | Representación del grafo           | Muestra el grafo como lista de adyacencia en consola.                                        |
+| 3 | Grado de un vértice                | Calcula el grado total (aristas entrantes + salientes) de un vértice.                        |
+| 4 | Tipo de grafo                      | Determina si es un grafo simple o un multigrafo.                                             |
+| 5 | Grafo completo                     | Verifica si el grafo es completo (todos los pares de vértices conectados).                   |
+| 6 | Grafo conexo                       | Verifica si el grafo es conexo usando BFS (búsqueda en anchura).                             |
+| 7 | Componentes conexos                | Identifica y muestra todos los componentes conexos del grafo.                                |
+| 8 | Verificar si es arbol              | Verifica si el grafo es arbol dependiendo de ciertas caracteristicas.                        |
+| 9 | Verificar si es plano              | Determina si el grafo es plano usando grafo subyacente simple y el principio de kuratowsky.  |
+| 10| Verificar numero cromatico         | Determina el minimo numero de colores posibles para pintar el grafo.                         |
+| 11| Verificar si tiene camino de Euler | Encuentra un camino de Euler partiendo de los grados y la conexividad.                       |
+|---|------------------------------------|----------------------------------------------------------------------------------------------|
 
 #### Cómo compilar y ejecutar
 ```bash
