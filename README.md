@@ -39,7 +39,6 @@ origen,destino,peso
 
 
 #### Funcionalidades Implementadas
-|---|------------------------------------|----------------------------------------------------------------------------------------------|
 | # | Funcionalidad                      | Descripción                                                                                  |
 |---|------------------------------------|----------------------------------------------------------------------------------------------|
 | 1 | Lectura de archivos                | Lee grafos desde archivos CSV con formato `origen,destino,peso`                              |
@@ -53,7 +52,6 @@ origen,destino,peso
 | 9 | Verificar si es plano              | Determina si el grafo es plano usando grafo subyacente simple y el principio de kuratowsky.  |
 | 10| Verificar numero cromatico         | Determina el minimo numero de colores posibles para pintar el grafo.                         |
 | 11| Verificar si tiene camino de Euler | Encuentra un camino de Euler partiendo de los grados y la conexividad.                       |
-|---|------------------------------------|----------------------------------------------------------------------------------------------|
 
 #### Cómo compilar y ejecutar
 ```bash
