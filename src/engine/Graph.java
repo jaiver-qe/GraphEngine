@@ -320,10 +320,9 @@ public class Graph {
 
    /**
      * Verifica si el grafo es un árbol.
-     * Se evalúa la versión no dirigida del grafo:
+     * Se evalúan las siguientes condiciones:
      * - Sin ciclos (no hay caminos cerrados)
      * - Sin aristas paralelas en la misma dirección
-     * - Conexo en sentido no dirigido
      * - Con exactamente n-1 aristas únicas
      *
      * @return true si el grafo es un árbol, false si no
@@ -338,12 +337,12 @@ public class Graph {
             return false;
         }
 
-        // Construye un mapa de vecinos para la versión no dirigida del grafo
-        Map<Integer, Set<Integer>> vecinos = vecinosNoDirigidos();
+        // Construye un mapa de vecinos
+        Map<Integer, Set<Integer>> vecinos = vecinosDeCadaVertice();
         Set<Integer> visitado = new HashSet<>();
         int verticeInicio = vertices.iterator().next();
 
-        // Verifica si hay ciclos en la versión no dirigida del grafo
+        // Verifica si hay ciclos
         if (tieneCiclo(verticeInicio, -1, visitado, vecinos)) {
             return false;
         }
@@ -389,8 +388,8 @@ public class Graph {
         return false;
     }
 
-    // Construye un mapa de vecinos para la versión no dirigida del grafo
-    private Map<Integer, Set<Integer>> vecinosNoDirigidos() {
+    // Construye un mapa de vecinos para cada vértice.
+    private Map<Integer, Set<Integer>> vecinosDeCadaVertice() {
         Map<Integer, Set<Integer>> vecinos = new HashMap<>(); // Mapa que almacena cada vértice y su conjunto de vecinos
         for (int vertex : vertices) {
             vecinos.put(vertex, new HashSet<>()); //Inicializa un conjunto vacío para cada vértice
@@ -407,20 +406,20 @@ public class Graph {
             }
         }
 
-        // Devuelve el mapa de vecinos construido, representando la versión no dirigida del grafo
+        // Devuelve el mapa de vecinos construido.
         return vecinos;
     }
 
-    // Cuenta el número de aristas únicas en la versión no dirigida del grafo
+    // Cuenta el número de aristas únicas
     private int contarAristasNoDirigidas(Map<Integer, Set<Integer>> vecinos) {
         int total = 0;
         for (Set<Integer> adj : vecinos.values()) {
-            total += adj.size();
+            total += adj.size(); // Cada arista se cuenta dos veces (una por cada vértice), por lo que se divide entre 2 al final
         }
         return total / 2;
     }
 
-    // Verifica si hay ciclos en la versión no dirigida del grafo usando DFS (búsqueda en profundidad)
+    // Verifica si hay ciclos en el grafo usando DFS (búsqueda en profundidad)
     private boolean tieneCiclo(int actual, int pariente, Set<Integer> visitado, Map<Integer, Set<Integer>> vecinos) {
         visitado.add(actual);
 
@@ -450,8 +449,8 @@ public class Graph {
             return true;
         }
 
-        // Construye un mapa de vecinos para la versión no dirigida del grafo
-        Map<Integer, Set<Integer>> vecinos = vecinosNoDirigidos();
+        // Construye un mapa de vecinos
+        Map<Integer, Set<Integer>> vecinos = vecinosDeCadaVertice();
 
         // Reduce el grafo eliminando vértices de grado 0, 1 y 2
         Map<Integer, Set<Integer>> reducido = gradoReducido(vecinos);
@@ -635,7 +634,7 @@ public class Graph {
 
 
 /**
-     * Calcula el número cromático del grafo usando su versión no dirigida.
+     * Calcula el número cromático del grafo.
      * Se busca el menor número de colores necesarios para colorear los vértices
      * de modo que no haya dos vértices adyacentes con el mismo color.
      *
@@ -647,8 +646,8 @@ public class Graph {
             return 0;
         }
 
-        // Construye un mapa de vecinos para la versión no dirigida del grafo
-        Map<Integer, Set<Integer>> vecinos = vecinosNoDirigidos();
+        // Construye un mapa de vecinos para cada vértice.
+        Map<Integer, Set<Integer>> vecinos = vecinosDeCadaVertice();
         return encontrarNumeroCromatico(vecinos);
     }
 
@@ -704,114 +703,77 @@ public class Graph {
     }
 
 
-    
-
- /**
-     * Verifica si el grafo dirigido tiene un camino de Euler.
-     * Se usa el criterio para grafos dirigidos:
-     * - Debe ser débilmente conexo en los vértices con aristas
-     * - Todos los vértices deben tener |gradoSalida - GradoEntrada| <= 1
-     * - Puede haber como máximo un vértice con gradoSalida - GradoEntrada = 1
-     *   y uno con GradoEntrada - gradoSalida = 1
+    /**
+     * Verifica si el grafo no dirigido tiene un camino de Euler.
+     * Criterio para grafos no dirigidos:
+     * - Debe tener 0 o 2 vértices de grado impar
      *
      * @return true si existe un camino de Euler, false en caso contrario
      */
     public boolean hasEulerPath() {
-        if (vertices.isEmpty() || countEdges() == 0) { // Un grafo vacío o sin aristas tiene un camino de Euler trivial
-            return true;
+        if (vertices.isEmpty() || countEdges() == 0) {
+            return true; // verifica si el grafo está vacío o no tiene aristas, en cuyo caso se considera que tiene un camino de Euler trivial
         }
 
-        // Calcula los grados de entrada y salida para cada vértice
-        Map<Integer, Integer> gradoEntrada = new HashMap<>();
-        Map<Integer, Integer> gradoSalida = new HashMap<>();
-
-        // Inicializa los grados de entrada y salida en 0 para todos los vértices
-        for (int vertex : vertices) {
-            gradoEntrada.put(vertex, 0);
-            gradoSalida.put(vertex, 0);
+        // Calcula el grado de cada vértice y cuenta cuántos tienen grado impar
+        Map<Integer, Integer> grado = new HashMap<>();
+        for (int v : vertices) { 
+            grado.put(v, 0); // Inicializa el grado de cada vértice en 0
         }
-
-        // Recorre la lista de adyacencia para calcular los grados de entrada y salida
-        for (Map.Entry<Integer, List<GraphEdge>> entrada : adjacencyList.entrySet()) {
-            int origen = entrada.getKey();
-            gradoSalida.put(origen, gradoSalida.get(origen) + entrada.getValue().size());
-            for (GraphEdge e : entrada.getValue()) {
-                gradoEntrada.put(e.destination, gradoEntrada.get(e.destination) + 1);
+        for (Map.Entry<Integer, List<GraphEdge>> entry : adjacencyList.entrySet()) { // Recorre cada vértice y sus aristas para calcular el grado total (entrante + saliente) de cada vértice
+            int source = entry.getKey();
+            for (GraphEdge e : entry.getValue()) {// Recorre cada arista saliente del vértice actual y actualiza el grado de los vértices involucrados.
+                grado.put(source, grado.get(source) + 1);
+                grado.put(e.destination, grado.getOrDefault(e.destination, 0) + 1);
             }
         }
 
-        // Verifica las condiciones para la existencia de un camino de Euler
-        int candidatoInicial = 0;
-        int candidatoFinal = 0;
-        for (int vertex : vertices) {
-            int salida = gradoSalida.get(vertex); // Grado de salida del vértice
-            int entrada = gradoEntrada.get(vertex);
-            int diferencia = salida - entrada;
-
-            // Si la diferencia entre el grado de salida y el grado de entrada es mayor que 1, no puede haber un camino de Euler
-            if (Math.abs(diferencia) > 1) {
-                return false;
-            }
-
-            // Cuenta los candidatos para el inicio y fin del camino de Euler
-            if (diferencia == 1) {
-                candidatoInicial++;
-            } else if (diferencia == -1) {
-                candidatoFinal++;
+        // Cuenta vértices de grado impar
+        int impares = 0;
+        for (int v : vertices) {
+            if (grado.getOrDefault(v, 0) % 2 != 0) { // Si el grado del vértice es impar, incrementa el contador de vértices impares
+                impares++;
             }
         }
-
-        // Verifica que haya como máximo un candidato para el inicio y uno para el fin del camino de Euler
-        if (!((candidatoInicial == 1 && candidatoFinal == 1) || (candidatoInicial == 0 && candidatoFinal == 0))) {
+        if (!(impares == 0 || impares == 2)) { // Si el número de vértices de grado impar no es 0 ni 2, no puede existir un camino de Euler
             return false;
         }
 
-        // Verifica si el grafo es débilmente conexo considerando solo los vértices con aristas
-        return grafoEsDebilmenteConexo(gradoEntrada, gradoSalida);
+        // Verifica conectividad considerando solo vértices con grado > 0
+        return esConexoConsiderandoAristas(grado);
     }
 
-    // Método auxiliar que verifica si el grafo es débilmente conexo considerando solo los vértices con aristas
-    private boolean grafoEsDebilmenteConexo(Map<Integer, Integer> gradoEntrada,Map<Integer, Integer> gradoSalida) {
-        Map<Integer, Set<Integer>> vecinos = vecinosNoDirigidos(); // Construye un mapa de vecinos para la versión no dirigida del grafo
-        Set<Integer> visitado = new HashSet<>(); // Conjunto para almacenar los vértices visitados durante la búsqueda en anchura (BFS)
-        Queue<Integer> cola = new LinkedList<>(); // Cola para la búsqueda en anchura (BFS)
+    // Verifica si el grafo es conexo considerando solo los vértices con grado > 0
+    private boolean esConexoConsiderandoAristas(Map<Integer, Integer> grado) {
+        Map<Integer, Set<Integer>> vecinos = vecinosDeCadaVertice();
+        Set<Integer> visitado = new HashSet<>();
+        Queue<Integer> cola = new LinkedList<>();
 
-        // Encuentra un vértice de inicio que tenga al menos una arista (grado de entrada o salida mayor que 0)
-        int verticeInicio = -1;
-        for (int vertex : vertices) {
-            if (gradoEntrada.get(vertex) + gradoSalida.get(vertex) > 0) {
-                verticeInicio = vertex; // Se encontró un vértice de inicio válido, se rompe el bucle
+        int inicio = -1;
+        for (int v : vertices) {
+            if (grado.getOrDefault(v, 0) > 0) { // Encuentra un vértice con grado > 0 para iniciar la búsqueda
+                inicio = v;
                 break;
             }
         }
-
-        // Si no se encontró ningún vértice con aristas, el grafo es débilmente conexo por definición
-        if (verticeInicio == -1) {
-            return true;
-        }
+        if (inicio == -1) return true; // Si no hay vértices con grado > 0, el grafo es considerado conexo
 
         // Realiza una búsqueda en anchura (BFS) para recorrer todos los vértices alcanzables desde el vértice de inicio
-        cola.add(verticeInicio);
-        visitado.add(verticeInicio);
-
-        // Mientras haya vértices en la cola, se procesan sus vecinos y se agregan a la cola si no han sido visitados
+        cola.add(inicio);
+        visitado.add(inicio); // Marca el vértice de inicio como visitado
         while (!cola.isEmpty()) {
-            int verticeActual = cola.poll();
-            for (int vecino : vecinos.getOrDefault(verticeActual, Collections.emptySet())) {
-                if (!visitado.contains(vecino)) { // Si el vecino no ha sido visitado, se marca como visitado y se agrega a la cola para su procesamiento
-                    visitado.add(vecino);
-                    cola.add(vecino);
+            int u = cola.poll();
+            for (int w : vecinos.getOrDefault(u, Collections.emptySet())) { // Recorre todos los vecinos del vértice actual
+                if (!visitado.contains(w)) {
+                    visitado.add(w);
+                    cola.add(w);
                 }
             }
         }
 
-        // Verifica si todos los vértices con aristas han sido visitados
-        for (int vertex : vertices) {
-            if (gradoEntrada.get(vertex) + gradoSalida.get(vertex) > 0 && !visitado.contains(vertex)) { // Si hay un vértice con aristas que no fue visitado, el grafo no es débilmente conexo
-                return false;
-            }
+        for (int v : vertices) { // Verifica que todos los vértices con grado > 0 hayan sido visitados; si alguno no fue visitado, el grafo no es conexo
+            if (grado.getOrDefault(v, 0) > 0 && !visitado.contains(v)) return false; // Si hay un vértice con grado > 0 que no fue visitado, el grafo no es conexo
         }
-
         return true;
     }
 }
