@@ -71,7 +71,7 @@ public class Graph {
             System.out.print("> Vértice " + vertex + ":");
             List<GraphEdge> edges = adjacencyList.getOrDefault(vertex, new ArrayList<>());
             if (edges.isEmpty()) {
-                System.out.println("> (sin aristas salientes)");
+                System.out.println(" (sin aristas salientes)");
             } else {
                 for (GraphEdge e : edges) {
                     System.out.print(e);
@@ -452,13 +452,6 @@ public class Graph {
 
         // Construye un mapa de vecinos para la versión no dirigida del grafo
         Map<Integer, Set<Integer>> vecinos = vecinosNoDirigidos();
-
-        // Busca los bucles que hacen que el grafo no sea plano
-        for (Map.Entry<Integer, Set<Integer>> entrada : vecinos.entrySet()) { // Recorre cada vértice y sus vecinos
-            if (entrada.getValue().contains(entrada.getKey())) { // Si un vértice tiene un bucle, el grafo no es plano
-                return false;
-            }
-        }
 
         // Reduce el grafo eliminando vértices de grado 0, 1 y 2
         Map<Integer, Set<Integer>> reducido = gradoReducido(vecinos);
